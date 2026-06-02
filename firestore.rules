@@ -1,0 +1,128 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable core gates
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation schemas
+    function isValidUserGoal(data) {
+      return data.userId is string && data.userId.size() <= 128
+        && data.name is string && data.name.size() <= 128
+        && data.email is string && data.email.size() <= 128
+        && data.age is number && data.age >= 0 && data.age <= 150
+        && data.weight is number && data.weight >= 0 && data.weight <= 500
+        && data.height is number && data.height >= 0 && data.height <= 300
+        && data.calorieTarget is number && data.calorieTarget >= 0
+        && data.proteinTarget is number && data.proteinTarget >= 0
+        && data.carbTarget is number && data.carbTarget >= 0
+        && data.fatTarget is number && data.fatTarget >= 0
+        && data.dietaryPreference is string && data.dietaryPreference.size() <= 200
+        && data.waterTarget is number && data.waterTarget >= 0
+        && data.mealReminders is string && data.mealReminders.size() <= 200
+        && data.waterActive is bool;
+    }
+
+    function isValidFoodLog(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.foodName is string && data.foodName.size() <= 128
+        && data.calories is number && data.calories >= 0
+        && data.protein is number && data.protein >= 0
+        && data.carbs is number && data.carbs >= 0
+        && data.fats is number && data.fats >= 0
+        && data.mealType is string && data.mealType.size() <= 64
+        && data.date is string && data.date.size() <= 32;
+    }
+
+    function isValidSharedPost(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.userName is string && data.userName.size() <= 128
+        && data.userPhoto is string && data.userPhoto.size() <= 512
+        && data.text is string && data.text.size() <= 1000
+        && data.mealDetails is string && data.mealDetails.size() <= 512
+        && data.calories is number
+        && data.protein is number
+        && data.carbs is number
+        && data.privacy is string && (data.privacy == 'public' || data.privacy == 'private' || data.privacy == 'friends')
+        && data.likes is list && data.likes.size() <= 1000;
+    }
+
+    function isValidWaterLog(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.date is string && data.date.size() <= 32
+        && data.amount is number && data.amount >= 0 && data.amount <= 10000;
+    }
+
+    // Match blocks
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserGoal(incoming()) && incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && isValidUserGoal(incoming())
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time;
+      allow delete: if isOwner(userId);
+
+      match /foodLogs/{logId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidFoodLog(incoming()) && incoming().createdAt == request.time;
+        allow update: if isOwner(userId) && isValidId(logId) && isValidFoodLog(incoming())
+          && incoming().id == existing().id
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+
+      match /waterLogs/{logId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidWaterLog(incoming()) && incoming().createdAt == request.time;
+        allow update: if isOwner(userId) && isValidId(logId) && isValidWaterLog(incoming())
+          && incoming().id == existing().id
+          && incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+    }
+
+    match /posts/{postId} {
+      allow get: if isSignedIn() && (existing().privacy == 'public' || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.privacy == 'public' || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(postId) && isValidSharedPost(incoming()) && incoming().userId == request.auth.uid && incoming().timestamp == request.time;
+      allow update: if isSignedIn() && isValidId(postId) && isValidSharedPost(incoming())
+        && incoming().id == existing().id
+        && incoming().userId == existing().userId
+        && incoming().timestamp == existing().timestamp
+        && (
+          (incoming().userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['text', 'privacy', 'mealDetails', 'calories', 'protein', 'carbs']))
+          ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['likes']))
+        );
+      allow delete: if isSignedIn() && isValidId(postId) && existing().userId == request.auth.uid;
+    }
+  }
+}

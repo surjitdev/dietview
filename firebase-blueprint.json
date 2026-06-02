@@ -1,0 +1,98 @@
+{
+  "entities": {
+    "UserGoal": {
+      "title": "UserGoal",
+      "description": "User profile demographic targets and preferences.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "age": { "type": "number" },
+        "weight": { "type": "number" },
+        "height": { "type": "number" },
+        "calorieTarget": { "type": "number" },
+        "proteinTarget": { "type": "number" },
+        "carbTarget": { "type": "number" },
+        "fatTarget": { "type": "number" },
+        "dietaryPreference": { "type": "string" },
+        "waterTarget": { "type": "number" },
+        "mealReminders": { "type": "string" },
+        "waterActive": { "type": "boolean" },
+        "streakDays": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "email", "age", "weight", "height"]
+    },
+    "FoodLog": {
+      "title": "FoodLog",
+      "description": "Log of a meal or ingredient consumed.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "foodName": { "type": "string" },
+        "calories": { "type": "number" },
+        "protein": { "type": "number" },
+        "carbs": { "type": "number" },
+        "fats": { "type": "number" },
+        "mealType": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "foodName", "calories", "protein", "carbs", "fats", "mealType", "date"]
+    },
+    "SharedPost": {
+      "title": "SharedPost",
+      "description": "A social post shared in the feed with friends.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "text": { "type": "string" },
+        "mealDetails": { "type": "string" },
+        "calories": { "type": "number" },
+        "protein": { "type": "number" },
+        "carbs": { "type": "number" },
+        "privacy": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "likes": { "type": "array" }
+      },
+      "required": ["id", "userId", "userName", "text", "privacy"]
+    },
+    "WaterLog": {
+      "title": "WaterLog",
+      "description": "Log of daily water consumption.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "date": { "type": "string" },
+        "amount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "date", "amount"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserGoal",
+      "description": "The user demographics and target preferences."
+    },
+    "users/{userId}/foodLogs/{logId}": {
+      "schema": "FoodLog",
+      "description": "The historical food log records for the user."
+    },
+    "users/{userId}/waterLogs/{logId}": {
+      "schema": "WaterLog",
+      "description": "The hydration logging history for the user."
+    },
+    "posts/{postId}": {
+      "schema": "SharedPost",
+      "description": "Public and friend-shared meals and updates."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "DietView",
+  "description": "A high-fidelity full-stack smart nutrition app. Log meals with verified lookups, automate food recognition using camera capture, view water logs and macronutrient insights, and share progress updates in a privacy-respecting social feed.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
