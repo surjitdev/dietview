@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -24,16 +24,31 @@ import {
   Flame, 
   Droplet 
 } from "lucide-react";
-import { UserProfile, FoodLog, WaterLog } from "../types";
+import { UserProfile, FoodLog, WaterLog, WeightLog } from "../types";
 
 interface InsightsProps {
   user: UserProfile;
   foodLogs: FoodLog[];
   waterLogs: WaterLog[];
+  weightLogs: WeightLog[];
+  onAddWeightLog: (weightValue: number, logDate?: string) => void;
 }
 
-export default function Insights({ user, foodLogs, waterLogs }: InsightsProps) {
+export default function Insights({ user, foodLogs, waterLogs, weightLogs, onAddWeightLog }: InsightsProps) {
   const todayStr = new Date().toISOString().split("T")[0];
+
+  // Weight History Form States
+  const [newWeightInput, setNewWeightInput] = useState("");
+  const [weightLogDate, setWeightLogDate] = useState(todayStr);
+
+  const weightChartData = weightLogs.map(log => {
+    const dObj = new Date(log.date);
+    const formattedDate = dObj.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+    return {
+      name: formattedDate,
+      Weight: log.weight
+    };
+  });
 
   // Helper: Get past 7 days dates labels
   const getPastWeekDates = () => {
@@ -318,6 +333,115 @@ export default function Insights({ user, foodLogs, waterLogs }: InsightsProps) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Weight History Progression Module */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" id="insights-weight-module-section">
+        {/* Input Logger Box */}
+        <div className="bg-surface card-elevation-1 rounded-xl p-5 border border-outline-variant/10 md:col-span-1 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-2">
+              <Activity className="w-4 h-4 text-emerald-500" /> Weight Logger
+            </div>
+            <h4 className="text-md font-bold text-on-surface">Update Body Weight</h4>
+            <p className="text-xs text-on-surface-variant mt-1.5 leading-relaxed">
+              Log daily fasted morning weights to align historical progress lines and calibrate your metabolic deficit algorithms.
+            </p>
+
+            <div className="flex flex-col gap-3 mt-4">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Scale Weight (kg)</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="20"
+                    max="500"
+                    placeholder="e.g. 68.4"
+                    value={newWeightInput}
+                    onChange={(e) => setNewWeightInput(e.target.value)}
+                    className="w-full text-xs font-semibold bg-surface-container pl-3.5 pr-10 py-3 rounded-xl border border-outline-variant/30 focus:outline-none focus:border-primary"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-extrabold text-on-surface-variant/40">KG</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-bold uppercase text-on-surface-variant block mb-1">Logging Date</label>
+                <input
+                  type="date"
+                  value={weightLogDate}
+                  onChange={(e) => setWeightLogDate(e.target.value)}
+                  className="w-full text-xs font-semibold bg-surface-container px-3.5 py-3 rounded-xl border border-outline-variant/30 focus:outline-none focus:border-primary"
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const val = parseFloat(newWeightInput);
+              if (val > 0) {
+                onAddWeightLog(val, weightLogDate);
+                setNewWeightInput("");
+              }
+            }}
+            disabled={!newWeightInput}
+            className="w-full mt-4 bg-emerald-500 hover:bg-emerald-600 text-neutral-950 font-black text-xs py-3.5 px-5 rounded-lg flex items-center justify-center gap-2 active:scale-95 shadow transition-all cursor-pointer disabled:opacity-40"
+          >
+            💾 Log Weight Progress
+          </button>
+        </div>
+
+        {/* Dynamic Weight Progress Chart Box */}
+        <div className="bg-surface card-elevation-1 rounded-xl p-5 border border-outline-variant/10 md:col-span-2">
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Fasted morning trend</span>
+              <h3 className="text-md font-bold text-on-surface mt-0.5 flex items-center gap-1.5">
+                 📏 Chronological Body Weight Progression
+              </h3>
+            </div>
+            <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2.5 py-1 rounded-full font-bold">Live Progress</span>
+          </div>
+
+          <div className="h-64" id="weight-trend-chart-box">
+            {weightChartData.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-xs text-on-surface-variant font-bold">
+                No weight logs registered yet. Log your weight to render progression lines!
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={weightChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorWeight" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: "bold" }} stroke="#717a67" />
+                  <YAxis 
+                    domain={["dataMin - 1", "dataMax + 1"]} 
+                    tick={{ fontSize: 10, fontWeight: "bold" }} 
+                    stroke="#717a67" 
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1a1c1e",
+                      borderRadius: "12px",
+                      color: "#ffffff",
+                      fontSize: "11px",
+                      border: "none"
+                    }}
+                  />
+                  <Area type="monotone" dataKey="Weight" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorWeight)" name="Weight (kg)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>

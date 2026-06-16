@@ -253,7 +253,7 @@ export default function SocialFeed({ user, posts, onAddPost, onLikePost }: Socia
             className="bg-surface card-elevation-1 rounded-xl p-5 border border-outline-variant/10 flex flex-col gap-3.5"
             id={`post-envelope-${post.id}`}
           >
-            {/* Post Header with demographic information and avatar */}
+            {/* Post Header with identity information and avatar */}
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden border border-surface bg-surface-container-high shrink-0">

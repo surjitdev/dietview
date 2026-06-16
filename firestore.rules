@@ -29,100 +29,148 @@ service cloud.firestore {
     }
 
     // Validation schemas
+    function isNum(val) {
+      return val is int || val is float;
+    }
+
     function isValidUserGoal(data) {
       return data.userId is string && data.userId.size() <= 128
         && data.name is string && data.name.size() <= 128
-        && data.email is string && data.email.size() <= 128
-        && data.age is number && data.age >= 0 && data.age <= 150
-        && data.weight is number && data.weight >= 0 && data.weight <= 500
-        && data.height is number && data.height >= 0 && data.height <= 300
-        && data.calorieTarget is number && data.calorieTarget >= 0
-        && data.proteinTarget is number && data.proteinTarget >= 0
-        && data.carbTarget is number && data.carbTarget >= 0
-        && data.fatTarget is number && data.fatTarget >= 0
-        && data.dietaryPreference is string && data.dietaryPreference.size() <= 200
-        && data.waterTarget is number && data.waterTarget >= 0
-        && data.mealReminders is string && data.mealReminders.size() <= 200
-        && data.waterActive is bool;
+        && data.email is string && data.email.size() <= 128;
     }
 
     function isValidFoodLog(data) {
       return data.id is string && data.id.size() <= 128
         && data.userId is string && data.userId.size() <= 128
         && data.foodName is string && data.foodName.size() <= 128
-        && data.calories is number && data.calories >= 0
-        && data.protein is number && data.protein >= 0
-        && data.carbs is number && data.carbs >= 0
-        && data.fats is number && data.fats >= 0
+        && isNum(data.calories) && data.calories >= 0
+        && isNum(data.protein) && data.protein >= 0
+        && isNum(data.carbs) && data.carbs >= 0
+        && isNum(data.fats) && data.fats >= 0
         && data.mealType is string && data.mealType.size() <= 64
-        && data.date is string && data.date.size() <= 32;
+        && data.date is string && data.date.size() <= 32
+        && (!('createdAt' in data) || data.createdAt is string);
     }
 
     function isValidSharedPost(data) {
       return data.id is string && data.id.size() <= 128
         && data.userId is string && data.userId.size() <= 128
-        && data.userName is string && data.userName.size() <= 128
-        && data.userPhoto is string && data.userPhoto.size() <= 512
+        && (data.userName is string && data.userName.size() <= 128)
+        && (!('userPhoto' in data) || data.userPhoto is string || data.userPhoto == null)
         && data.text is string && data.text.size() <= 1000
-        && data.mealDetails is string && data.mealDetails.size() <= 512
-        && data.calories is number
-        && data.protein is number
-        && data.carbs is number
+        && (!('mealDetails' in data) || data.mealDetails is string)
+        && (!('calories' in data) || isNum(data.calories))
+        && (!('protein' in data) || isNum(data.protein))
+        && (!('carbs' in data) || isNum(data.carbs))
         && data.privacy is string && (data.privacy == 'public' || data.privacy == 'private' || data.privacy == 'friends')
-        && data.likes is list && data.likes.size() <= 1000;
+        && data.likes is list && data.likes.size() <= 1000
+        && (!('timestamp' in data) || data.timestamp is timestamp || data.timestamp is string);
     }
 
     function isValidWaterLog(data) {
       return data.id is string && data.id.size() <= 128
         && data.userId is string && data.userId.size() <= 128
         && data.date is string && data.date.size() <= 32
-        && data.amount is number && data.amount >= 0 && data.amount <= 10000;
+        && isNum(data.amount) && data.amount >= 0 && data.amount <= 10000
+        && (!('createdAt' in data) || data.createdAt is string);
+    }
+
+    function isValidWeightLog(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.date is string && data.date.size() <= 32
+        && isNum(data.weight) && data.weight >= 0 && data.weight <= 500
+        && (!('createdAt' in data) || data.createdAt is string);
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'ajdonna21@gmail.com';
+    }
+
+    function isValidUpiPayment(data) {
+      return data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.userEmail is string && data.userEmail.size() <= 128
+        && data.userName is string && data.userName.size() <= 128
+        && data.planId is string && data.planId.size() <= 64
+        && data.planName is string && data.planName.size() <= 128
+        && isNum(data.price) && data.price >= 0
+        && data.currency is string && data.currency.size() <= 16
+        && data.transactionId is string && data.transactionId.size() <= 128
+        && data.status is string && (data.status == 'pending' || data.status == 'approved' || data.status == 'rejected')
+        && (!('createdAt' in data) || data.createdAt is string)
+        && (!('updatedAt' in data) || data.updatedAt is string);
     }
 
     // Match blocks
     match /users/{userId} {
-      allow get: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidUserGoal(incoming()) && incoming().createdAt == request.time;
-      allow update: if isOwner(userId) && isValidUserGoal(incoming())
-        && incoming().createdAt == existing().createdAt
-        && incoming().updatedAt == request.time;
-      allow delete: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUserGoal(incoming()) && (
+        !('isPremium' in incoming()) || incoming().isPremium == false
+      );
+      allow update: if (isOwner(userId) && isValidUserGoal(incoming())
+        && (!('isPremium' in incoming()) || !('isPremium' in existing()) || incoming().isPremium == existing().isPremium || incoming().isPremium == false)
+        && (!('trialActive' in incoming()) || !('trialActive' in existing()) || incoming().trialActive == existing().trialActive || incoming().trialActive == false)
+        && (!('createdAt' in incoming()) || !('createdAt' in existing()) || incoming().createdAt == existing().createdAt)
+      ) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
 
       match /foodLogs/{logId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(logId) && isValidFoodLog(incoming()) && incoming().createdAt == request.time;
+        allow create: if isOwner(userId) && isValidId(logId) && isValidFoodLog(incoming());
         allow update: if isOwner(userId) && isValidId(logId) && isValidFoodLog(incoming())
           && incoming().id == existing().id
-          && incoming().createdAt == existing().createdAt;
+          && (!('createdAt' in incoming()) || !('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
         allow delete: if isOwner(userId) && isValidId(logId);
       }
 
       match /waterLogs/{logId} {
         allow get: if isOwner(userId);
         allow list: if isOwner(userId);
-        allow create: if isOwner(userId) && isValidId(logId) && isValidWaterLog(incoming()) && incoming().createdAt == request.time;
+        allow create: if isOwner(userId) && isValidId(logId) && isValidWaterLog(incoming());
         allow update: if isOwner(userId) && isValidId(logId) && isValidWaterLog(incoming())
           && incoming().id == existing().id
-          && incoming().createdAt == existing().createdAt;
+          && (!('createdAt' in incoming()) || !('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+
+      match /weightLogs/{logId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidWeightLog(incoming());
+        allow update: if isOwner(userId) && isValidId(logId) && isValidWeightLog(incoming())
+          && incoming().id == existing().id
+          && (!('createdAt' in incoming()) || !('createdAt' in existing()) || incoming().createdAt == existing().createdAt);
         allow delete: if isOwner(userId) && isValidId(logId);
       }
     }
 
     match /posts/{postId} {
-      allow get: if isSignedIn() && (existing().privacy == 'public' || existing().userId == request.auth.uid);
-      allow list: if isSignedIn() && (resource.data.privacy == 'public' || resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn() && isValidId(postId) && isValidSharedPost(incoming()) && incoming().userId == request.auth.uid && incoming().timestamp == request.time;
+      allow get: if isSignedIn() && (existing().privacy == 'public' || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.privacy == 'public' || resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(postId) && isValidSharedPost(incoming()) && incoming().userId == request.auth.uid;
       allow update: if isSignedIn() && isValidId(postId) && isValidSharedPost(incoming())
         && incoming().id == existing().id
         && incoming().userId == existing().userId
-        && incoming().timestamp == existing().timestamp
         && (
           (incoming().userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['text', 'privacy', 'mealDetails', 'calories', 'protein', 'carbs']))
           ||
           (incoming().diff(existing()).affectedKeys().hasOnly(['likes']))
         );
-      allow delete: if isSignedIn() && isValidId(postId) && existing().userId == request.auth.uid;
+      allow delete: if isSignedIn() && isValidId(postId) && (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    match /upiPayments/{paymentId} {
+      allow get: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(paymentId) && incoming().userId == request.auth.uid && isValidUpiPayment(incoming()) && incoming().status == 'pending';
+      allow update: if isSignedIn() && isValidId(paymentId) && (
+        (incoming().userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['transactionId', 'updatedAt']) && isValidUpiPayment(incoming()))
+        ||
+        (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']) && isValidUpiPayment(incoming()))
+      );
+      allow delete: if isAdmin();
     }
   }
 }

@@ -11,8 +11,15 @@ export interface UserProfile {
   fatTarget: number;
   dietaryPreference: string;
   waterTarget: number; // in Litres, e.g. 2.5
+  country?: string; // e.g. "India", "Japan", etc.
   mealReminders: string; // "Breakfast, Lunch, Dinner"
   waterActive: boolean;
+  waterRemindersEnabled?: boolean;
+  isPremium?: boolean;
+  trialActive?: boolean;
+  trialStartDate?: string;
+  subscriptionExpiry?: string;
+  aiGenerationsCount?: number;
   streakDays: number;
   profilePic?: string;
   createdAt?: string;
@@ -73,3 +80,29 @@ export interface MealRecommendation {
   rationale: string;
   meals: MealDetail[];
 }
+
+export interface UpiPaymentModel {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  planId: "trial" | "monthly" | "yearly";
+  planName: string;
+  price: number;
+  currency: string;
+  transactionId: string;
+  paymentMethod?: "upi" | "usdt_trc20";
+  status: "pending" | "approved" | "rejected";
+  createdAt: string;
+  updatedAt?: string;
+  adminNote?: string;
+}
+
+export interface WeightLog {
+  id: string;
+  userId: string;
+  date: string; // YYYY-MM-DD
+  weight: number; // e.g. 68.5
+  createdAt: string;
+}
+

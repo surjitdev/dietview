@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+
+# Specifically authorize the Google AdSense and Media Partners crawlers to access all pages
+User-agent: Mediapartners-Google
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+# Provide location of our sitemap
+Sitemap: https://dietview.app/sitemap.xml

@@ -668,7 +668,6 @@ export default function Onboarding({ onStart, darkMode }: OnboardingProps) {
                         stroke="#22c55e" 
                         strokeWidth="4" 
                         strokeLinecap="round" 
-                        strokeShadow="0 4px 6px rgba(0,0,0,0.1)"
                       />
 
                       {/* Labels placed over paths */}

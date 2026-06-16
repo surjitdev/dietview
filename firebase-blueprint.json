@@ -2,7 +2,7 @@
   "entities": {
     "UserGoal": {
       "title": "UserGoal",
-      "description": "User profile demographic targets and preferences.",
+      "description": "User profile metrics targets and preferences.",
       "type": "object",
       "properties": {
         "userId": { "type": "string" },
@@ -75,12 +75,32 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["id", "userId", "date", "amount"]
+    },
+    "UpiPayment": {
+      "title": "UpiPayment",
+      "description": "Manual UPI payment verification request.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "planId": { "type": "string" },
+        "planName": { "type": "string" },
+        "price": { "type": "number" },
+        "currency": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "userEmail", "planId", "price", "transactionId", "status", "createdAt"]
     }
   },
   "firestore": {
     "users/{userId}": {
       "schema": "UserGoal",
-      "description": "The user demographics and target preferences."
+      "description": "The user profile and target preferences."
     },
     "users/{userId}/foodLogs/{logId}": {
       "schema": "FoodLog",
@@ -93,6 +113,10 @@
     "posts/{postId}": {
       "schema": "SharedPost",
       "description": "Public and friend-shared meals and updates."
+    },
+    "upiPayments/{paymentId}": {
+      "schema": "UpiPayment",
+      "description": "Pending and historical manual UPI payment verification requests."
     }
   }
 }
