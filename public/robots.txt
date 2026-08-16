@@ -10,3 +10,9 @@ Allow: /
 
 # Provide location of our sitemap
 Sitemap: https://dietview.app/sitemap.xml
+
+
+User-agent: *
+Allow: /
+
+Sitemap: https://dietview.app/sitemap.xml
